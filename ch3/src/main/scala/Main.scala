@@ -107,3 +107,34 @@ object Exercise3_6 {
     }
   }
 }
+
+object Exercise3_11 {
+  def sum[T](listy: List[T])(implicit num: Numeric[T]): T = {
+    listy.foldLeft(num.zero)((a: T,b: T) => num.plus(a,b))
+  }
+
+  def product[T](listy: List[T])(implicit num: Numeric[T]): T = {
+    listy.foldLeft(num.one)(num.times(_,_))
+  }
+
+  def length[T](listy: List[T]): Int = {
+    listy.foldLeft(0)( (i, _) => i + 1)
+  }
+}
+
+object Exercise3_12 {
+  def reverse[T](listy: List[T]): List[T] = {
+    def reverseAccumulated[T](res: List[T], listy: List[T]): List[T] = { 
+      listy match {
+        case Nil => res
+        case Cons(head, tail) => {
+            reverseAccumulated(Cons(head, res), tail)
+          }
+        }
+      }
+    reverseAccumulated(Nil, listy) 
+  }
+  def reverseWithFold[T](listy: List[T]): List[T] = {
+    listy.foldLeft(Nil: List[T])( (a: List[T], b: T) => Cons(b, a))
+  }
+}

@@ -1,0 +1,6 @@
+*.swp
+*/target/*
+ch2/project/target/
+ch2/src/test/
+ch3/project/target/
+

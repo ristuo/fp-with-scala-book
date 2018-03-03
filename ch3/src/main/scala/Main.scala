@@ -232,3 +232,83 @@ object Exercise3_23 {
     }
   }
 }
+
+object Exercise3_24 {
+  def isContained[A](l1: List[A], l2: List[A]): Boolean = {
+    (l1, l2) match {
+      case (_, Nil) => true
+      case (Nil, x) => false
+      case (Cons(h1, t1), Cons(h2, t2)) => h1 == h2 && isContained(t1, t2)
+    }
+  }
+  def hasSubsequence[A](l: List[A], subsequence: List[A]): Boolean = {
+    (l, subsequence) match {
+      case (_, Nil) => true
+      case (Nil, _) => false
+      case (Cons(h, t), Cons(sh, st)) => {
+        if (h == sh) {
+          isContained(t, st) || hasSubsequence(t, subsequence)
+        } else {
+          hasSubsequence(t, subsequence)
+        }
+      }
+    }
+  }
+}
+
+sealed trait Tree[+A]
+case class Leaf[A](value: A) extends Tree[A]
+case class Branch[A](left: Tree[A], right: Tree[A]) extends Tree[A]
+
+object Exercise3_25 {
+  def size[A](t: Tree[A]): Int = {
+    t match {
+      case Leaf(_) => 1
+      case Branch(l, r) => 1 + size(l) + size(r)
+    }
+  }
+}
+
+object Exercise3_26 {
+  def maximum[T <% Ordered[T]](t: Tree[T]): T = {
+    t match { 
+      case Leaf(a) => a
+      case Branch(l, r) => {
+        val lmax = maximum(l)
+        val rmax = maximum(r)
+        if (lmax > rmax) {
+          lmax
+        } else {
+          rmax
+        }
+      }
+    }
+  }
+}
+
+object Exercise3_27 {
+  def depth[A](t: Tree[A]): Int = {
+    t match {
+      case Leaf(_) => 1
+      case Branch(r, l) =>  math.max(depth(l), depth(r))
+    }
+  }
+}
+
+object Exercise3_28 {
+  def map[A, B](t: Tree[A])(f: A => B): Tree[B] = {
+    t match {
+      case Leaf(a) => Leaf(f(a))
+      case Branch(l, r) => Branch(map(l)(f), map(r)(f))
+    }
+  }
+}
+
+object Exercise3_29 {
+  def fold[A,B](t: Tree[A])(leafOp: A => B, combine: (B, B) => B): B = {
+    t match {
+      case Leaf(a) => leafOp(a)
+      case Branch(l, r) => combine(fold(l)(leafOp, combine), fold(r)(leafOp, combine))
+    }
+  }
+}

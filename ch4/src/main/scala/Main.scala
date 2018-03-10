@@ -28,7 +28,7 @@ trait Option[+A] {
     this.flatMap((a: A) => if (f(a)) Some(a) else None)
   }
 }
-case class Some[A](get: A) extends Option[A]
+case class Some[A](val get: A) extends Option[A]
 case object None extends Option[Nothing]
 
 object Exercise4_2 {
@@ -59,51 +59,114 @@ object Exercise4_3 {
 object Exercise4_4 {
   def sequence[A](a: List[Option[A]]): Option[List[A]] = {
     @annotation.tailrec
-    def appendValue[A](acc: Option[List[A]], 
+    def appendValue[A](acc: Some[List[A]], 
                        l: List[Option[A]]
                       ): Option[List[A]] = {
       l match {
         case Nil => acc
-        case Some(v) :: tail => appendValue(Some(v :: acc.get), tail)
-        case None :: tail => None
+        case head :: tail => {
+          head match { 
+            case Some(v) => appendValue(Some(v :: acc.get), tail)
+            case None => None
+          }
+        }
       }
     }
-    appendValue(Some(Nil), a)
+    appendValue(Some[List[A]](Nil), a)
   }
 }
 
-def Try[A](a: => A): Option[A] = {
-  try { 
-    Some(a) 
-  } catch {
-    case e: Exception => None
-  }
-}
+
 
 object Exercise4_5 {
-  def traverse[A,B](a: List[A])(f: A => Option[B]): Option[List[B]] = {
+  def Try[A](a: => A): Option[A] = {
+    try { 
+      Some(a) 
+    } catch {
+      case e: Exception => None
+    }
+  }
+  def traverse[A,B](a: List[A])(f: A => B): Option[List[B]] = {
+    val g: A => Option[B] = a => Try(f(a))
     @annotation.tailrec
-    def appendValue(acc: Option[List[B]], 
+    def appendValue(acc: Some[List[B]], 
                     l: List[A]
                    ): Option[List[B]] = {
       l match {
         case Nil => acc
         case v :: tail => {
-          f(v) match {
+          g(v) match {
             case Some(u) => appendValue(Some(u :: acc.get), tail)
             case None => None
           }
         }
       }
     }
-    appendValue(Some(Nil), a)
+    appendValue(Some[List[B]](Nil), a)
   }
 }
 
+trait Either[+E, +A] {
+  def map[B](f: A => B): Either[E, B] = {
+    this match {
+      case Left(v) => Left[E](v)
+      case Right(v) => Right[B](f(v))
+    }
+  }
+  def flatMap[EE >: E, B](f: A => Either[EE, B]): Either[EE, B] = {
+    this match { 
+      case Left(e) => Left(e)
+      case Right(v) => f(v)
+    }
+  }
+  def orElse[EE >: E, B >: A](b: => Either[EE, B]): Either[EE, B] = {
+    this match {
+      case Right(_) => this
+      case Left(_) => b
+    }
+  }
+  def map2[EE >: E, B, C](b: Either[EE, B])(f: (A,B) => C): Either[EE, C] = {
+    this.flatMap(a => {
+      b.map(f(a, _))
+    })
+  }
+}
+case class Right[+A](value: A) extends Either[Nothing, A]
+case class Left[+E](value: E) extends Either[E, Nothing]
 
-
-
-
-
-
-
+object Exercise4_7 {
+   def sequence[E, A](a: List[Either[E, A]]): Either[E, List[A]] = {
+    @annotation.tailrec
+    def appendValue[A](acc: Right[List[A]], 
+                       l: List[Either[E, A]]
+                      ): Either[E, List[A]] = {
+      l match {
+        case Nil => acc
+        case head :: tail => {
+          head match { 
+            case Right(v) => appendValue(Right(v :: acc.value), tail)
+            case Left(e) => Left(e)
+          }
+        }
+      }
+    }
+    appendValue(Right[List[A]](Nil), a)
+  } 
+  def traverse[E,A,B](a: List[A])(f: A => Either[E, B]): Either[E, List[B]] = {
+    @annotation.tailrec
+    def appendValue(acc: Right[List[B]], 
+                    l: List[A]
+                   ): Either[E, List[B]] = {
+      l match {
+        case Nil => acc
+        case v :: tail => {
+          f(v) match {
+            case Right(u) => appendValue(Right(u :: acc.value), tail)
+            case Left(e) => Left(e) 
+          }
+        }
+      }
+    }
+    appendValue(Right[List[B]](Nil), a)
+  }
+}

@@ -105,9 +105,6 @@ object Exercise5_5 {
     val start: Stream[A] = Empty
     s.foldRight(start)(combine)
   }
-  def makeInts(n: Long): Stream[Long] = {
-    Stream.cons(n, makeInts(n + 1))
-  }
 }
 
 object Exercise5_6 {
@@ -115,5 +112,57 @@ object Exercise5_6 {
     val start: Option[A] = None
     val f: (A, => Option[A]) => Option[A] = (a, acc) => Some(a)
     s.foldRight(start)(f)
+  }
+}
+
+object Exercise5_7 {
+  def map[A, B](s: Stream[A])(f: A => B): Stream[B] = {
+    val acc: Stream[B] = Empty
+    val g: (A, => Stream[B]) => Stream[B] = (a, sb) => {
+      Stream.cons(f(a), sb)
+    }
+    s.foldRight(acc)(g)
+  }
+
+  def filter[A](s: Stream[A])(p: A => Boolean): Stream[A] = {
+    val acc: Stream[A] = Empty
+    val f: (A, => Stream[A]) => Stream[A] = (a,s) => {
+      if (p(a)) {
+        Stream.cons(a, s)
+      } else {
+        Empty
+      }
+    }
+    s.foldRight(acc)(f)
+  }
+
+  def append[A](s: Stream[A], a: => A): Stream[A] = {
+    val f: (A, => Stream[A]) => Stream[A] = (a, s) => {
+      Stream.cons(a, s)
+    }
+    val start: Stream[A] = Stream.cons(a, Empty)
+    start.foldRight(s)(f)
+  }
+}
+
+object Exercise5_8 {
+  def constant[A](a: A): Stream[A] = {
+    Stream.cons(a, constant(a))
+  }
+}
+
+object Exercise5_9 {
+  def from(n: Int): Stream[Int] = {
+    Stream.cons(n, from(n + 1))
+  }
+}
+
+object Exercise5_10 {
+  def fibs(): Stream[Long] = {
+    def fibby(f_1: Long, f_2: Long): Stream[Long] = {
+      val f_3 = f_1 + f_2
+      Stream.cons(f_3, fibby(f_2, f_3))
+    }
+    Stream.cons(0, Stream.cons(1, fibby(0, 1)))
   }
 }

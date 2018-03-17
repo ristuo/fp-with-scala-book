@@ -166,3 +166,38 @@ object Exercise5_10 {
     Stream.cons(0, Stream.cons(1, fibby(0, 1)))
   }
 }
+
+object Exercise5_11 {
+  def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = {
+    f(z) match {
+      case None => Empty
+      case Some((a,s1)) => Stream.cons(a, unfold(s1)(f))
+    }
+  }
+}
+
+object Exercise5_12 {
+  import Exercise5_11.unfold
+  def ones(): Stream[Int] = {
+    unfold(())( Unit => Some(1, ()))
+  }
+  def constant[A](a: A): Stream[A] = {
+    val z: Stream[A] = Empty
+    unfold(z)( (x: Stream[A]) => Some((a, x)))
+  }
+  def from(a: Int): Stream[Int] = {
+    val z: Int = a
+    val f: Int => Option[(Int, Int)] = i => {
+      Some(i, i + 1)
+    }
+    unfold(z)(f)
+  }
+  def fibs(): Stream[Long] = {
+    val ij = (0L, 1L)
+    val f: ((Long, Long)) => Option[(Long, (Long, Long))] = { case(i,j) => {
+      val next = i + j
+      Some(next, (next, i))
+    }}
+    Stream.cons(0, unfold(ij)(f))
+  }
+}

@@ -267,3 +267,24 @@ object Exercise5_13 {
     unfold(state)(g)
   }
 }
+
+object Exercise5_14 {
+  import Exercise5_13.zipWith
+  import Exercise5_4.forAll
+  def startsWith[A](s1: Stream[A], s2: Stream[A]): Boolean = {
+    forAll((x: Boolean) => x, zipWith(s1, s2)((a,b) => a == b))
+  }
+}
+
+object Exercise5_15 {
+  import Exercise5_11.unfold
+  def tails[A](stream: Stream[A]): Stream[Stream[A]] = {
+    val res = unfold(stream)(s => {
+      s match {
+        case Empty => None
+        case Cons(h, t) => Some(t(), t()) 
+      }
+    })
+    Stream.cons(stream, res)
+  }
+}

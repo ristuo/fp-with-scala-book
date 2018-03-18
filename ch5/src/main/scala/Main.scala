@@ -201,3 +201,69 @@ object Exercise5_12 {
     Stream.cons(0, unfold(ij)(f))
   }
 }
+
+object Exercise5_13 {
+  import Exercise5_11.unfold
+  def map[A,B](s: Stream[A])(f: A => B): Stream[B] = {
+    unfold(s)((x: Stream[A]) => {
+      x match {
+        case Empty => None
+        case Cons(h, t) => Some((f(h()), t()))
+      }
+    })
+  }
+  def take[A](stream: Stream[A], n: Int): Stream[A] = {
+    val state: (Int, Stream[A]) = (0, stream)
+    unfold(state){ case(i, s) => {
+      if (i >= n) { 
+        None
+      } else {
+        s match {
+          case Empty => None
+          case Cons(h, t) => Some((h(), (i + 1, t())))
+        }
+      }
+    }}
+  }
+  def takeWhile[A](s: Stream[A])(p: A => Boolean): Stream[A] = {
+    unfold(s)(x => { 
+      x match {
+        case Empty => None
+        case Cons(h, t) => {
+          if (p(h())) {
+            Some(h(), t())
+          } else {
+            None
+          }
+        }
+      }
+    })
+  }
+  def zipWith[A,B,C](s1: Stream[A], s2: Stream[B])(f: (A, B) => C): Stream[C] = {
+    val state: (Stream[A], Stream[B]) = (s1, s2)
+    val g: ((Stream[A], Stream[B])) => Option[(C, (Stream[A], Stream[B]))] = streams => {
+      streams match {
+        case (Empty, _) => None
+        case (_, Empty) => None
+        case (Cons(h1, t1), Cons(h2, t2)) => {
+          Some(f(h1(), h2()), (t1(), t2()))
+        }
+      }
+    }
+    unfold(state)(g)
+  }
+  def zipAll[A,B](s1: Stream[A], s2: Stream[B]): Stream[(Option[A], Option[B])] = {
+    type State = (Stream[A], Stream[B])
+    type Result = (Option[A], Option[B])
+    val state = (s1, s2)
+    val g: State => Option[(Result, State)] = streams => {
+      streams match {
+        case (Cons(h, t), Empty) => Some(((Some(h()), None), (t(), Empty)))
+        case (Empty, Cons(h, t)) => Some(((None, Some(h())), (Empty, t())))
+        case (Empty, Empty) => None
+        case (Cons(h1, t1), Cons(h2, t2)) => Some(((Some(h1()), Some(h2())), (t1(), t2())))
+      }
+    }
+    unfold(state)(g)
+  }
+}

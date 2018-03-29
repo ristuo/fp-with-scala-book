@@ -27,7 +27,7 @@ object Exercise6_2 {
   }
 }
 
-object Exercise6_4 {
+object Exercise6_3 {
   import Exercise6_2.double
   def intDouble(rng: RNG): ((Int, Double), RNG) = { 
     val (int1, rng1) = rng.nextInt
@@ -62,9 +62,9 @@ object Exercise6_4 {
   }
 }
 
-type Rand[+A] = RNG => (A, RNG)
 
 object RndUtil {
+  type Rand[+A] = RNG => (A, RNG)
   def map[A,B](s: Rand[A])(f: A => B): Rand[B] = {
     rng => {
       val (a, rng2) = s(rng)
@@ -75,6 +75,7 @@ object RndUtil {
 
 object Exercise6_5 {
   import RndUtil.map    
+  import RndUtil.Rand
   import Exercise6_1.nonNegativeInt
   def double(rng: RNG) = {
     val f: Int => Double = _.toDouble / Int.MaxValue.toDouble
@@ -83,6 +84,7 @@ object Exercise6_5 {
 }
 
 object Exercise6_6 {
+  import RndUtil.Rand
   import RndUtil.map
   def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = {
     rng => {
@@ -94,6 +96,7 @@ object Exercise6_6 {
 }
 
 object Exercise6_7 {
+  import RndUtil.Rand
   def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = {
     def seqAcc(acc: List[A], l: List[Rand[A]])(rng: RNG): (List[A], RNG) = {
       l match { 
@@ -110,5 +113,34 @@ object Exercise6_7 {
   def ints(count: Int)(rng: RNG): (List[Int], RNG) = {
     val rands = List.fill(count)((x: RNG) => x.nextInt)
     sequence(rands)(rng) 
+  }
+}
+
+object Exercise6_8 {
+  import RndUtil.Rand
+  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = {
+    (rng: RNG) => {
+      val (a, nextState) = f(rng)
+      g(a)(nextState)
+    }
+  }
+}
+
+object Exercise6_9 {
+  import RndUtil.Rand
+  import Exercise6_8.flatMap
+  def map[A,B](f: Rand[A])(g: A => B): Rand[B] = { 
+    val func: A => Rand[B] = {
+      (a: A) => {
+        rng => {
+          (g(a), rng)
+        }
+      }
+    }
+    flatMap(f)(func)
+  }
+
+  def map2[A,B,C](f: Rand[A], g: Rand[B])(h: (A,B) => C): Rand[C] = {
+    flatMap(f)((a: A) => flatMap(g)((b: B) => (rng: RNG) => (h(a,b), rng)))
   }
 }

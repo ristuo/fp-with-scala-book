@@ -144,3 +144,86 @@ object Exercise6_9 {
     flatMap(f)((a: A) => flatMap(g)((b: B) => (rng: RNG) => (h(a,b), rng)))
   }
 }
+
+object Exercise6_10 {
+  case class State[S, +A](run: S => (A, S)) {
+    def map[B](f: A => B): State[S, B] = {
+      val run: S => (B, S) = s => {  
+        val (a, nextState) = this.run(s)
+        (f(a), nextState)
+      }
+      State(run)
+    }
+    def flatMap[B](f: A => State[S, B]): State[S, B] = {
+      val run: S => (B, S) = s => {
+        val (a, nextState) = this.run(s)
+        f(a).run(nextState)
+      }
+      State(run)
+    }
+    def map2[B,C](f: State[S, B])(g: (A,B) => C): State[S,C] = {
+      this.flatMap(a => {
+        f.flatMap(b => {
+          State((s: S) => (g(a,b), s))
+        })
+      })
+    }
+  }
+  object State {
+    def unit[S, A](a: A): State[S, A] = State((s: S) => (a,s))
+    def sequence[S, A](fs: List[State[S, A]]): State[S, List[A]] = {
+      def seqAcc(acc: List[A], l: List[State[S, A]])(s: S): (List[A], S) = {
+        l match { 
+          case Nil => (acc, s)
+          case head :: tail => {
+            val (a, s2) = head.run(s)
+            seqAcc(a :: acc, tail)(s2)
+          }
+        }
+      }
+      State(s => seqAcc(Nil, fs)(s))
+    }
+  }
+}
+
+object Exercise6_11 {
+  import Exercise6_10.State
+  sealed trait Input
+  case object Coin extends Input
+  case object Turn extends Input
+  case class Machine(val locked: Boolean, val candies: Int, val coins: Int)
+  // what this teaches me about state monad I do not know
+  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = { 
+    def handleInput(m: Machine, in: Input): Machine = {
+      if (m.candies <= 0) {
+        m
+      } else {
+        in match {
+          case Coin => {
+            if (m.locked) {
+              Machine(false, m.candies, m.coins + 1)
+            } else {
+              m
+            }
+          }
+          case Turn => {
+            if (m.locked) {
+              m
+            } else {
+              Machine(true, m.candies - 1, m.coins)
+            }
+          }
+        }
+      }
+    }
+    State((m: Machine) => {
+      val res = inputs.foldLeft(m)(handleInput)
+      ((res.coins, res.candies), res)
+    })
+  }
+  def example = {
+    val start = Machine(true, 5, 10)
+    val inputs = List(Coin, Turn, Coin, Turn, Coin, Turn, Coin, Turn)
+    simulateMachine(inputs).run(start)
+  }
+}

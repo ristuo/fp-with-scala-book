@@ -80,7 +80,7 @@ object State {
   }
 }
 
-case class Generator[A](sample: State[RNG, A]) {
+case class Generator[+A](sample: State[RNG, A]) {
   def listOfN(n: Int): Generator[List[A]] = {
     val fs: List[State[RNG, A]] = List.fill(n)(this.sample)
     val res: State[RNG, List[A]] = State.sequence(fs)
@@ -88,6 +88,9 @@ case class Generator[A](sample: State[RNG, A]) {
   }
   def flatMap[B](f: A => Generator[B]): Generator[B] = {
     Generator(this.sample.flatMap((a: A) => f(a).sample))
+  }
+  def unsized: NewProp.SGen[A] = {
+    NewProp.SGen((_: Int) => this)
   }
 }
 
@@ -133,3 +136,56 @@ object Exercise8_7 {
   def union[A](g1: Generator[A], g2: Generator[A]): Generator[A] = weighted(g1, g2, 0.5)
 }
 
+
+object NewProp {
+  type SuccessCount = Int
+  type FailedCase = String
+  type TestCases = Int
+
+  sealed trait Result {
+    def isFalsified: Boolean
+  }
+
+  case object Passed extends Result {
+    val isFalsified = false
+  }
+
+  case class Falsified(failure: FailedCase, successes: SuccessCount) extends Result {
+    val isFalsified = true
+  }
+  case class Prop(run: TestCases => Result) {
+    def &&(p: Prop): Prop = {
+      val newRun = (i: TestCases) => {
+        val res1 = this.run(i)
+        res1 match {
+          case a: Falsified => a
+          case _ => {
+            val res2 = p.run(i)
+            res2 match {
+              case Passed => Passed
+              case b: Falsified => b
+            }
+          }
+        }
+      }
+      Prop(newRun)
+    }
+    def ||(p: Prop): Prop = {
+      val newRun = (i: TestCases) => {
+        val res1 = this.run(i)
+        res1 match {
+          case Passed => Passed
+          case a: Falsified => {
+            val res2 = p.run(i)
+            res2 match {
+              case Passed => Passed
+              case b: Falsified => b
+            }
+          }
+        }
+      }
+      Prop(newRun)
+    }
+  }
+  case class SGen[+A](forSize: Int => Generator[A])
+}

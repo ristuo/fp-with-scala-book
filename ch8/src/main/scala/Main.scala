@@ -80,15 +80,56 @@ object State {
   }
 }
 
-case class Gen[A](sample: State[RNG, A])
+case class Generator[A](sample: State[RNG, A]) {
+  def listOfN(n: Int): Generator[List[A]] = {
+    val fs: List[State[RNG, A]] = List.fill(n)(this.sample)
+    val res: State[RNG, List[A]] = State.sequence(fs)
+    Generator(res)
+  }
+  def flatMap[B](f: A => Generator[B]): Generator[B] = {
+    Generator(this.sample.flatMap((a: A) => f(a).sample))
+  }
+}
 
-object Exericse8_4 {
-  def choose(start: Int, stopExclusive: Int): Gen[Int] = {
+object Exercise8_4 {
+  def choose(start: Int, stopExclusive: Int): Generator[Int] = {
     val intervalLength = stopExclusive - start
     val res = (rng: RNG) => {
       val (rnd, nextRng) = rng.nextInt
       ((rnd % intervalLength) + start, nextRng)
     }
-    Gen(State(res))
+    Generator(State(res))
   }
 }
+
+object Exercise8_5 {
+  def unit[A](a: => A): Generator[A] = Generator[A](State.unit(a))
+  def boolean: Generator[Boolean] = {
+    val res = (rng: RNG) => {
+      val (i, nextRNG) = rng.nextInt
+      (i % 2 == 0, nextRNG)
+    }
+    Generator(State(res))
+  }
+  def listOfN[A](n: Int, g: Generator[A]): Generator[List[A]] = {
+    val fs: List[State[RNG, A]] = List.fill(n)(g.sample)
+    val res: State[RNG, List[A]] = State.sequence(fs)
+    Generator(res)
+  }
+}
+
+object Exercise8_8 {
+  def weighted[A](g1: Generator[A], g2: Generator[A], weight: Double): Generator[A] = {
+    val res = (rng: RNG) => {
+      val g = if (scala.math.random > weight) g1 else g2 
+      g.sample.run(rng)
+    }
+    Generator(State(res))
+  }
+}
+
+object Exercise8_7 {
+  import Exercise8_8.weighted
+  def union[A](g1: Generator[A], g2: Generator[A]): Generator[A] = weighted(g1, g2, 0.5)
+}
+

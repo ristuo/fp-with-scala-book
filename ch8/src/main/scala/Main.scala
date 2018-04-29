@@ -188,4 +188,15 @@ object NewProp {
     }
   }
   case class SGen[+A](forSize: Int => Generator[A])
+
+  object Exercise8_12 { 
+    def listOf[A](g: Generator[A]): SGen[List[A]] = {
+      val res = (n: Int) => {
+        val fs = List.fill(n)(g.sample)
+        val listy: State[RNG, List[A]] = State.sequence(fs)
+        Generator(listy) 
+      }
+      SGen(res)
+    }
+  }
 }
